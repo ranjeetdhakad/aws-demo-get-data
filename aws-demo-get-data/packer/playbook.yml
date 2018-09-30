@@ -1,0 +1,125 @@
+---
+- hosts: default
+  become: true
+  become_method: sudo
+  remote_user: ec2-user
+  vars:
+    app_name: demo-rest-app
+    app_version: 1.1.0-SNAPSHOT
+    app_binary_file: "{{app_name}}-{{app_version}}.jar"
+    app_binary_path: ../build/libs/{{app_binary_file}}
+    app_dest_dir: /var/{{app_name}}
+    user_name: tos-user
+  tasks:
+
+  - name: upgrade all packages
+    yum:
+      name: "*"
+      state: latest
+
+  - name: install java 8
+    yum:
+      name: java-1.8.0-openjdk
+
+  - name: remove java 7
+    yum:
+      name: java-1.7.0-openjdk
+      state: absent
+
+  - name: setup java dns resolution time to live (ttl)
+    lineinfile:
+      dest: "/usr/lib/jvm/jre/lib/security/java.security"
+      line: "networkaddress.cache.ttl=15"
+
+  - name: install awslogs
+    yum:
+      name: awslogs
+
+  - name: create user for running spring boot application
+    user:
+      name: "{{user_name}}"
+      system: yes
+      createhome: no
+      shell: /usr/sbin/nologin
+
+  - name: create application destination dir
+    file:
+      path: "{{app_dest_dir}}"
+      state: directory
+
+  - name: copy application to destination dir
+    copy:
+      src: "{{app_binary_path}}"
+      dest: "{{app_dest_dir}}"
+      owner: "{{user_name}}"
+      group: "{{user_name}}"
+      mode: 0500
+    notify:
+    - restart application
+
+  - name: copy application conf to destination dir
+    copy:
+      src: "../../{{app_name}}-{{app_version}}.conf"
+      dest: "{{app_dest_dir}}"
+      owner: "{{user_name}}"
+      group: "{{user_name}}"
+    notify:
+    - restart application
+    
+  - name: copy awslogs conf
+    copy:
+      src: "{{ item }}"
+      dest: /etc/awslogs/
+      owner: root
+      group: root      
+      mode: 0644
+    with_items:
+      - ../awslogs/awscli.conf   
+      - ../awslogs/awslogs.conf
+      - ../awslogs/awslogs.conf-TEMPLATE
+
+  - name: copy awslogs config script
+    copy:
+      src: "{{ item }}"
+      dest: /etc/awslogs/
+      owner: root
+      group: root      
+      mode: 0500
+    with_items:
+      - ../awslogs/create-awslogsfile.sh
+
+  - name: add call to aws configuration change to rc.local
+    lineinfile: dest=/etc/rc.local line="/etc/awslogs/create-awslogsfile.sh"
+
+  - name: enable awslogs service
+    service:
+      name: awslogs
+      enabled: yes
+      state: restarted      
+    notify:
+    - restart awslogs
+
+  # - name: TODO make application binary immutable (chattr)
+  # check this https://docs.spring.io/spring-boot/docs/current/reference/html/deployment-install.html
+
+  - name: install app as an init.d service by create a symlink
+    file:
+      path: /etc/init.d/{{app_name}}
+      state: link
+      src: "{{app_dest_dir}}/{{app_binary_file}}"
+
+  - name: enable app service
+    service:
+      name: "{{app_name}}"
+      enabled: yes
+
+  handlers:
+    - name: restart application
+      service:
+        name: "{{app_name}}"
+        state: restarted
+    - name: restart awslogs
+      service:
+        name: awslogs
+        state: restarted
+

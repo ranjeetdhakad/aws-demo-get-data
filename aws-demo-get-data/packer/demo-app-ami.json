@@ -1,0 +1,29 @@
+{
+"variables": {
+
+"aws_access_key": "AKIAJGUVUZYXPHYSJNIA",
+"aws_secret_key": "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"
+
+},
+  "builders": [
+    {
+      "associate_public_ip_address": "true",
+      "type": "amazon-ebs",
+      "region": "ap-south-1",
+      "source_ami": "ami-0912f71e06545ad88",
+      "instance_type": "t2.micro",
+      "ssh_username": "ec2-user",
+      "subnet_id": "subnet-3204475a",
+      "vpc_id": "vpc-5f4b1137",
+      "ami_name": "demo-app-ami-{{timestamp}}",
+      "ami_users": ["900388566207"]
+    }
+  ],
+  "provisioners": [
+    {
+      "type": "ansible",
+      "playbook_file": "playbook.yml",
+      "sftp_command" : "/usr/libexec/openssh/sftp-server"
+    }
+  ]
+}

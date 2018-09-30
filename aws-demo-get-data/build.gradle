@@ -1,0 +1,90 @@
+buildscript {
+    ext {
+        springBootVersion = '1.4.0.RELEASE'
+    }
+    repositories {
+        mavenCentral()
+        mavenLocal()
+    }
+    dependencies {
+        classpath("org.springframework.boot:spring-boot-gradle-plugin:${springBootVersion}")
+    }
+}
+
+// plugins configured using new plugin DSL.
+
+plugins {
+    id "java"
+    id "eclipse"
+    id "maven"        
+}
+
+// "Properties read from settings.gradle."
+group = myGroup
+version = myVersion
+description = """AWS demo Get Data Application."""
+
+apply plugin: 'spring-boot'
+
+repositories {
+    mavenCentral()
+}
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
+springBoot {
+    executable = true
+}
+
+jar {
+    baseName = myGroup
+    version = myVersion
+}
+
+dependencies {
+    compile (group: 'org.springframework.boot', name: 'spring-boot-starter-web')
+    compile (group: 'org.springframework.boot', name: 'spring-boot-starter-jdbc')
+    compile (group: 'org.springframework.boot', name: 'spring-boot-actuator')
+    compile (group: 'org.springframework.boot', name: 'spring-boot-devtools')
+    compile (group: 'org.postgresql', name: 'postgresql', version:'9.4.1212')
+    compile (group: 'com.fasterxml.jackson.datatype', name: 'jackson-datatype-jsr310', version:'2.6.6')
+    compile (group: 'org.springframework.cloud', name: 'spring-cloud-aws-context', version:'1.1.1.RELEASE')
+    compile (group: 'org.springframework.cloud', name: 'spring-cloud-aws-actuator', version: '1.1.1.RELEASE')
+    compile (group: 'org.slf4j', name: 'slf4j-ext', version: '1.7.21')
+    compile (group: 'com.google.guava', name: 'guava', version: '20.0')
+    testCompile (group: 'io.rest-assured', name: 'rest-assured', version:'3.0.0')
+    testCompile (group: 'org.skyscreamer', name: 'jsonassert', version: '1.3.0')
+    testCompile (group: 'org.springframework.boot', name: 'spring-boot-starter-test') {
+        exclude(module: 'commons-logging')
+    }
+    testCompile (group: 'org.unitils', name: 'unitils-core', version: '3.4.2')
+}
+
+
+task buildAMI(type : Exec, dependsOn : 'build') {
+    def packerOutput = new ByteArrayOutputStream()
+    workingDir = 'packer'
+    commandLine 'packer',  '-machine-readable',  'build', 'tos-generic-ami.json'
+    // capture packer output and redirect output to stdout as well
+    standardOutput = new org.apache.tools.ant.util.TeeOutputStream(packerOutput, System.out);
+    doLast {
+        def matcher = packerOutput =~ / ami-\w*/
+        ext.amiId = matcher[0]
+    }
+}
+
+eclipse {
+    classpath {
+        containers.remove('org.eclipse.jdt.launching.JRE_CONTAINER')
+        containers 'org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.8'
+    }
+}
+
+// pass system properties to spring boot
+bootRun {
+    systemProperties System.properties
+}
+
+task wrapper(type: Wrapper) {
+    gradleVersion = '3.2.1'
+}

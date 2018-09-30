@@ -1,0 +1,26 @@
+[general]
+state_file = /var/lib/awslogs/agent-state
+
+[tos-generic-basic-instance]
+datetime_format = %Y-%m-%d %H:%M:%S
+file = /var/log/tos-rest-generic.log
+buffer_duration = 5000
+log_stream_name = MYENV-tos-generic-basic-{instance_id}
+initial_position = start_of_file
+log_group_name = MYENV-tos-instance
+
+[tos-generic-basic-asg]
+datetime_format = %Y-%m-%d %H:%M:%S
+file = /var/log/tos-rest-generic.log
+buffer_duration = 5000
+log_stream_name = MYENV-tos-generic-basic-asg
+initial_position = start_of_file
+log_group_name = MYENV-tos-asg
+
+[tos-generic-basic-merged]
+datetime_format = %Y-%m-%d %H:%M:%S
+file = /var/log/tos-rest-generic.log
+buffer_duration = 5000
+log_stream_name = MYENV-tos-app-basic-merged
+initial_position = start_of_file
+log_group_name = MYENV-tos-merged
