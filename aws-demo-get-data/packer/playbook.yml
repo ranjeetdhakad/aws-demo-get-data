@@ -9,7 +9,7 @@
     app_binary_file: "{{app_name}}-{{app_version}}.jar"
     app_binary_path: ../build/libs/{{app_binary_file}}
     app_dest_dir: /var/{{app_name}}
-    user_name: tos-user
+    user_name: app-user
   tasks:
 
   - name: upgrade all packages
